@@ -1,0 +1,60 @@
+---
+import Base from '../layouts/Base.astro';
+import AuthCard from '../components/AuthCard.astro';
+import GoogleIcon from '../components/GoogleIcon.astro';
+import { dict, type Lang } from '../i18n/dict';
+import { lp } from '../lib/url';
+const { lang } = Astro.props as { lang: Lang };
+const a = dict[lang].auth, d = a.signup;
+---
+<Base lang={lang} title={d.title} noindex>
+  <AuthCard lang={lang} eyebrow={d.eyebrow} title={d.heading}>
+    <button type="button" id="google" class="btn btn-ghost w-full"><GoogleIcon /> {a.googleSignup}</button>
+    <p class="eyebrow my-8 text-center text-ink/50">{a.or}</p>
+    <form id="form" class="space-y-7" novalidate>
+      <div><label for="email" class="eyebrow">{a.email}</label><input id="email" type="email" autocomplete="email" inputmode="email" required class="field" /></div>
+      <div><label for="password" class="eyebrow">{a.password}</label><input id="password" type="password" autocomplete="new-password" required minlength="10" class="field" aria-describedby="hint" />
+        <p id="hint" class="mt-2 text-xs text-ink/60">{d.hint}</p></div>
+      <div><label for="confirm" class="eyebrow">{a.confirm}</label><input id="confirm" type="password" autocomplete="new-password" required class="field" /></div>
+      <button class="btn w-full" type="submit" id="submit">{d.btn}</button>
+      <p id="msg" role="status" class="msg"></p>
+    </form>
+    <p class="mt-8 text-sm">{d.have} <a class="underline underline-offset-4" href={lp(lang, '/login/')}>{dict[lang].auth.login.btn}</a></p>
+    <p class="mt-4 text-xs text-ink/60">{d.note}</p>
+  </AuthCard>
+  <script>
+    import { supabase, configured } from '../lib/supabase';
+    import { routeAfterLogin, signInWithGoogle, passwordProblem } from '../lib/auth';
+    import { msg, cl } from '../lib/i18n';
+    const out = document.getElementById('msg')!;
+    const say = (t: string, cls = 'err') => { out.textContent = t; out.className = 'msg ' + cls; };
+    if (!configured) { const w = document.getElementById('cfg-warning')!; w.hidden = false; w.textContent = msg().notConfigured; }
+    document.getElementById('form')!.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const m = msg();
+      if (!supabase) return say(m.notConfigured);
+      const email = (document.getElementById('email') as HTMLInputElement).value.trim();
+      const pw = (document.getElementById('password') as HTMLInputElement).value;
+      const confirm = (document.getElementById('confirm') as HTMLInputElement).value;
+      if (!/^\S+@\S+\.\S+$/.test(email)) return say(m.validEmail);
+      const problem = passwordProblem(pw);
+      if (problem) return say(problem);
+      if (pw !== confirm) return say(m.mismatch);
+      const btn = document.getElementById('submit') as HTMLButtonElement;
+      btn.disabled = true; say(m.creating, 'ok');
+      const { data, error } = await supabase.auth.signUp({
+        email, password: pw,
+        options: { emailRedirectTo: location.origin + cl('/login/') },
+      });
+      btn.disabled = false;
+      if (error) return say(error.message);
+      if (data.session) return routeAfterLogin();
+      say(m.checkEmail, 'ok');
+      (e.target as HTMLFormElement).reset();
+    });
+    document.getElementById('google')!.addEventListener('click', async () => {
+      const { error } = await signInWithGoogle();
+      if (error) say(error.message);
+    });
+  </script>
+</Base>

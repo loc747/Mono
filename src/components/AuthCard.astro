@@ -1,10 +1,11 @@
 ---
-const { eyebrow, title } = Astro.props;
+const { eyebrow, title, lang = 'en' } = Astro.props;
+const size = lang === 'ko' ? 'text-[clamp(2.5rem,9vw,5.5rem)]' : 'text-[clamp(3rem,11vw,7rem)]';
 ---
 <section class="wrap py-14 md:py-24 grid md:grid-cols-12 gap-10">
   <div class="md:col-span-5">
     <p class="eyebrow">{eyebrow}</p>
-    <h1 class="display mt-4 text-[clamp(3rem,11vw,7rem)] break-words">{title}</h1>
+    <h1 class={`display mt-4 break-words ${size}`}>{title}</h1>
   </div>
   <div class="md:col-span-6 md:col-start-7 w-full max-w-lg">
     <p id="cfg-warning" hidden class="mb-6 border border-ink bg-accent p-4 text-sm" role="alert"></p>

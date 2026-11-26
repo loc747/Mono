@@ -1,0 +1,53 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import { dict, type Lang } from '../i18n/dict';
+const { lang } = Astro.props as { lang: Lang };
+const d = dict[lang].contact;
+const field = 'w-full bg-transparent border-0 border-b border-ink py-3 text-base focus:outline-none focus:border-b-2 placeholder:text-ink/40';
+---
+<Base lang={lang} title={d.title} description={d.desc}>
+  <PageHero lang={lang} eyebrow={d.eyebrow} title={d.heading} intro={d.intro} />
+  <section class="wrap py-12 md:py-20 grid gap-14 md:grid-cols-12">
+    <form id="contact-form" class="md:col-span-7 space-y-8" novalidate>
+      <div><label for="name" class="eyebrow">{d.name}</label><input id="name" name="name" autocomplete="name" required maxlength="100" class={field} /></div>
+      <div><label for="email" class="eyebrow">{d.email}</label><input id="email" name="email" type="email" autocomplete="email" inputmode="email" required class={field} /></div>
+      <div>
+        <label for="topic" class="eyebrow">{d.topic}</label>
+        <select id="topic" name="topic" class={field}>
+          {d.topics.map(([v, l]) => <option value={v}>{l}</option>)}
+        </select>
+      </div>
+      <div><label for="msg" class="eyebrow">{d.message}</label><textarea id="msg" name="message" rows="5" required maxlength="4000" class={field}></textarea></div>
+      <button class="eyebrow bg-ink text-white px-8 py-4 hover:bg-accent hover:text-ink transition-colors w-full sm:w-auto" type="submit">{d.send}</button>
+      <p id="form-status" role="status" class="text-sm"></p>
+    </form>
+    <aside class="md:col-span-4 md:col-start-9 space-y-8">
+      <div><p class="eyebrow">{d.studio}</p><p class="mt-2 text-lg">{d.location}</p></div>
+      <div><p class="eyebrow">{d.email}</p><a class="mt-2 inline-block text-lg underline underline-offset-4" href="mailto:hello@mono.example.com">hello@mono.example.com</a></div>
+    </aside>
+  </section>
+  <script>
+    import { supabase } from '../lib/supabase';
+    import { msg } from '../lib/i18n';
+    const p = new URLSearchParams(location.search).get('topic');
+    const sel = document.getElementById('topic') as HTMLSelectElement;
+    if (p && sel.querySelector(`option[value="${CSS.escape(p)}"]`)) sel.value = p;
+    const f = document.getElementById('contact-form') as HTMLFormElement;
+    const s = document.getElementById('form-status')!;
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const m = msg();
+      if (!f.checkValidity()) { s.textContent = m.formIncomplete; f.reportValidity(); return; }
+      const d = new FormData(f);
+      const row = { name: String(d.get('name')).trim(), email: String(d.get('email')).trim(), topic: String(d.get('topic')), message: String(d.get('message')).trim() };
+      if (supabase) {
+        s.textContent = m.sending;
+        const { error } = await supabase.from('inquiries').insert(row);
+        if (!error) { s.textContent = m.thanks; f.reset(); return; }
+        s.textContent = m.mailFallback;
+      }
+      location.href = 'mailto:hello@mono.example.com?subject=' + encodeURIComponent(`[${row.topic}] ${row.name}`) + '&body=' + encodeURIComponent(row.message + '\n\n' + row.email);
+    });
+  </script>
+</Base>

@@ -33,3 +33,9 @@ body { background: var(--color-paper); color: var(--color-ink); font-family: var
 .tile::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, transparent 0 14px, rgb(255 255 255 / .04) 14px 15px); pointer-events: none; }
 
 :focus-visible { outline: 2px solid var(--color-ink); outline-offset: 3px; }
+
+/* Korean typography: Hangul needs looser tracking/leading and word-based wrapping. */
+html[lang="ko"] body { font-family: "Noto Sans KR", var(--font-sans); word-break: keep-all; overflow-wrap: break-word; }
+html[lang="ko"] .display { font-family: "Noto Sans KR", var(--font-display); font-weight: 900; letter-spacing: -0.03em; line-height: 1.08; text-transform: none; }
+html[lang="ko"] .eyebrow { letter-spacing: 0.06em; font-size: 0.8rem; }
+html[lang="ko"] .btn { letter-spacing: 0.04em; font-size: 0.85rem; }

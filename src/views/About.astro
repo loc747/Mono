@@ -1,0 +1,29 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import { dict, type Lang } from '../i18n/dict';
+const { lang } = Astro.props as { lang: Lang };
+const d = dict[lang].about;
+const ko = lang === 'ko';
+---
+<Base lang={lang} title={d.title} description={d.desc}>
+  <PageHero lang={lang} eyebrow={d.eyebrow} title={d.heading} intro={d.intro} />
+  <section class="wrap py-16 md:py-28 grid gap-12 md:grid-cols-12">
+    <p class="eyebrow md:col-span-3 reveal">{d.approach}</p>
+    <div class="md:col-span-9 space-y-px bg-line border border-line">
+      {d.principles.map(([t, text], i) => (
+        <div class="reveal bg-paper p-6 md:p-10">
+          <span class="eyebrow">0{i + 1}</span>
+          <h2 class={`display mt-3 ${ko ? 'text-3xl md:text-5xl' : 'text-4xl md:text-6xl'}`}>{t}</h2>
+          <p class="mt-4 max-w-2xl text-ink/75 md:text-lg">{text}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+  <section class="wrap pb-12">
+    <div class="bg-ink text-white p-8 md:p-16">
+      <p class="eyebrow text-accent">{d.mission}</p>
+      <p class="reveal mt-6 text-2xl md:text-5xl font-medium tracking-tight leading-tight max-w-4xl">{d.missionText}</p>
+    </div>
+  </section>
+</Base>

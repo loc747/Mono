@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { u } from './url';
+import { cl, msg } from './i18n';
 
 export interface Profile {
   id: string; username: string; display_name: string; bio: string | null;
@@ -23,22 +23,20 @@ export async function routeAfterLogin() {
   const s = await getSession();
   if (!s) return;
   const p = await getProfile(s.user.id);
-  location.replace(!p ? u('/profile/?welcome=1') : p.role === 'admin' ? u('/admin/') : u('/profile/'));
+  location.replace(!p ? cl('/profile/?welcome=1') : p.role === 'admin' ? cl('/admin/') : cl('/profile/'));
 }
 
 export async function signInWithGoogle() {
-  if (!supabase) return { error: new Error('Backend not configured') };
+  if (!supabase) return { error: new Error(msg().notConfigured) };
   return supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: location.origin + u('/login/') },
+    options: { redirectTo: location.origin + cl('/login/') },
   });
 }
 
 export function passwordProblem(pw: string): string | null {
-  if (pw.length < 10) return 'Use at least 10 characters.';
-  if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) return 'Include both letters and numbers.';
+  const m = msg();
+  if (pw.length < 10) return m.pwShort;
+  if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) return m.pwMix;
   return null;
 }
-
-export const NOT_CONFIGURED =
-  'The backend is not configured yet. Add PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY (see .env.example).';

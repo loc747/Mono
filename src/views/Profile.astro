@@ -1,0 +1,82 @@
+---
+import Base from '../layouts/Base.astro';
+import AuthCard from '../components/AuthCard.astro';
+import { dict, type Lang } from '../i18n/dict';
+import { lp, u } from '../lib/url';
+const { lang } = Astro.props as { lang: Lang };
+const d = dict[lang].auth.profile;
+---
+<Base lang={lang} title={d.title} noindex>
+  <AuthCard lang={lang} eyebrow={d.eyebrow} title={d.heading}>
+    <p id="welcome" hidden class="mb-8 text-lg">{d.welcome}</p>
+    <form id="form" class="space-y-7" novalidate hidden>
+      <div class="flex items-center gap-4" id="avatar-row" hidden>
+        <img id="avatar" alt="" class="w-16 h-16 object-cover bg-line" referrerpolicy="no-referrer" />
+        <p class="text-sm text-ink/70" id="who"></p>
+      </div>
+      <div><label for="display_name" class="eyebrow">{d.displayName}</label><input id="display_name" maxlength="60" required autocomplete="name" class="field" /></div>
+      <div><label for="username" class="eyebrow">{d.username}</label><input id="username" maxlength="20" required autocapitalize="none" autocomplete="username" class="field" aria-describedby="uhint" />
+        <p id="uhint" class="mt-2 text-xs text-ink/60">{d.usernameHint}</p></div>
+      <div><label for="bio" class="eyebrow">{d.bio} <span class="text-ink/50 normal-case tracking-normal">{d.optional}</span></label><textarea id="bio" rows="3" maxlength="300" class="field"></textarea></div>
+      <div><label for="avatar_url" class="eyebrow">{d.avatar} <span class="text-ink/50 normal-case tracking-normal">{d.avatarOpt}</span></label><input id="avatar_url" type="url" inputmode="url" class="field" /></div>
+      <button class="btn w-full sm:w-auto" type="submit" id="save">{d.save}</button>
+      <p id="msg" role="status" class="msg"></p>
+    </form>
+    <div id="actions" hidden class="mt-10 flex flex-wrap gap-3">
+      <a id="admin-link" hidden class="btn" href={u('/admin/')}>{d.adminLink}</a>
+      <a class="btn btn-ghost" href={lp(lang, '/community/#submit')}>{d.submitLook}</a>
+      <button id="signout" type="button" class="btn btn-ghost">{d.signOut}</button>
+    </div>
+  </AuthCard>
+  <script>
+    import { supabase, configured } from '../lib/supabase';
+    import { getSession, getProfile } from '../lib/auth';
+    import { safeUrl } from '../lib/dom';
+    import { msg, cl } from '../lib/i18n';
+    const $ = (id: string) => document.getElementById(id) as any;
+    const say = (t: string, cls = 'err') => { $('msg').textContent = t; $('msg').className = 'msg ' + cls; };
+    (async () => {
+      if (!configured || !supabase) { const w = $('cfg-warning'); w.hidden = false; w.textContent = msg().notConfigured; return; }
+      const s = await getSession();
+      if (!s) return location.replace(cl('/login/'));
+      const meta: any = s.user.user_metadata ?? {};
+      let p = await getProfile(s.user.id);
+      const isNew = !p;
+      $('form').hidden = false; $('actions').hidden = false;
+      if (isNew) $('welcome').hidden = false;
+      $('display_name').value = p?.display_name ?? meta.full_name ?? meta.name ?? '';
+      $('username').value = p?.username ?? '';
+      $('bio').value = p?.bio ?? '';
+      const av = p?.avatar_url ?? safeUrl(meta.avatar_url ?? meta.picture);
+      $('avatar_url').value = av ?? '';
+      if (av) { $('avatar').src = av; $('avatar-row').hidden = false; }
+      $('who').textContent = s.user.email ?? '';
+      if (p?.role === 'admin') $('admin-link').hidden = false;
+
+      $('form').addEventListener('submit', async (e: Event) => {
+        e.preventDefault();
+        const m = msg();
+        const display_name = $('display_name').value.trim();
+        const username = $('username').value.trim().toLowerCase();
+        const bio = $('bio').value.trim();
+        const avatar_url = $('avatar_url').value.trim();
+        if (!display_name) return say(m.nameReq);
+        if (!/^[a-z0-9_]{3,20}$/.test(username)) return say(m.userBad);
+        if (avatar_url && !safeUrl(avatar_url)) return say(m.avatarBad);
+        $('save').disabled = true; say(m.saving, 'ok');
+        const row = { display_name, username, bio: bio || null, avatar_url: avatar_url || null };
+        const { error } = isNew && !p
+          ? await supabase!.from('profiles').insert({ id: s.user.id, ...row })
+          : await supabase!.from('profiles').update(row).eq('id', s.user.id);
+        $('save').disabled = false;
+        if (error) return say(error.code === '23505' ? m.taken : m.saveFail);
+        p = await getProfile(s.user.id);
+        say(m.saved, 'ok');
+        $('welcome').hidden = true;
+        if (p?.role === 'admin') $('admin-link').hidden = false;
+        if (avatar_url) { $('avatar').src = avatar_url; $('avatar-row').hidden = false; }
+      });
+      $('signout').addEventListener('click', async () => { await supabase!.auth.signOut(); location.replace(cl('/login/')); });
+    })();
+  </script>
+</Base>
