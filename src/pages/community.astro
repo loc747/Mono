@@ -1,0 +1,31 @@
+---
+import { u } from '../lib/url';
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import Tile from '../components/Tile.astro';
+const steps = [['Find', 'Explore styles and brands until something clicks.'], ['Refine', 'Make it yours: fit, color, layers, details.'], ['Share', 'Show your look and inspire someone else.']];
+---
+<Base title="Community" description="Find your best style and share it with the Mono community.">
+  <PageHero eyebrow="Community" title="Your style, shared." intro="Anyone can find their own best fashion. Here’s where you share it." />
+  <section class="wrap py-16 md:py-24 grid gap-px bg-line border border-line md:grid-cols-3 mx-auto">
+    {steps.map(([t, d], i) => (
+      <div class="reveal bg-paper p-8 md:p-10">
+        <span class="eyebrow">0{i + 1}</span>
+        <h2 class="display text-5xl mt-3">{t}</h2>
+        <p class="mt-4 text-ink/75">{d}</p>
+      </div>
+    ))}
+  </section>
+  <section class="wrap pb-16 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+    <Tile label="Featured" title="Look 01" bg="#0a0a0a" />
+    <Tile label="Featured" title="Look 02" bg="#e5ff3a" fg="#0a0a0a" />
+    <Tile label="Featured" title="Look 03" bg="#2b2b2b" />
+    <Tile label="Featured" title="Look 04" bg="#444" />
+  </section>
+  <section class="bg-ink text-white">
+    <div class="wrap py-16 md:py-24 flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+      <h2 class="display text-5xl md:text-7xl">Submit<br />your look.</h2>
+      <a href={u('/contact/?topic=submission')} class="eyebrow bg-accent text-ink px-8 py-4 self-start hover:bg-white transition-colors">Send us yours</a>
+    </div>
+  </section>
+</Base>

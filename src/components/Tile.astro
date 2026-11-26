@@ -1,0 +1,7 @@
+---
+const { label, title, bg = '#111', fg = '#fff', ratio = 'aspect-[4/5]' } = Astro.props;
+---
+<article class={`tile reveal ${ratio} p-5 md:p-6 flex flex-col justify-between`} style={`--tile-bg:${bg};--tile-fg:${fg}`}>
+  <p class="eyebrow opacity-80 relative z-10">{label}</p>
+  <h3 class="display text-3xl md:text-4xl relative z-10">{title}</h3>
+</article>

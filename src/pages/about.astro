@@ -1,0 +1,31 @@
+---
+import { u } from '../lib/url';
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+const principles = [
+  ['Practical first', 'Great design has to work on a crowded train, in a New York winter, and on a Tuesday. Utility is the starting point, not the compromise.'],
+  ['Brand-minded', 'Every piece should feel like it belongs to something. We research how identity is built, from a label to a whole wardrobe.'],
+  ['Open to everyone', 'No dress code, no gatekeeping. Anyone can discover their own best style and share it.'],
+];
+---
+<Base title="About" description="Mono is a New York–inspired fashion design lab focused on practical, brandable design research.">
+  <PageHero eyebrow="About" title="Design, researched." intro="Mono is a fashion design lab rooted in New York. We don’t sell clothes. We study, develop and share the ideas behind great ones." />
+  <section class="wrap py-16 md:py-28 grid gap-12 md:grid-cols-12">
+    <p class="eyebrow md:col-span-3 reveal">Our approach</p>
+    <div class="md:col-span-9 space-y-px bg-line border border-line">
+      {principles.map(([t, d], i) => (
+        <div class="reveal bg-paper p-6 md:p-10">
+          <span class="eyebrow">0{i + 1}</span>
+          <h2 class="display text-4xl md:text-6xl mt-3">{t}</h2>
+          <p class="mt-4 max-w-2xl text-ink/75 md:text-lg">{d}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+  <section class="wrap pb-12">
+    <div class="bg-ink text-white p-8 md:p-16">
+      <p class="eyebrow text-accent">Mission</p>
+      <p class="reveal mt-6 text-2xl md:text-5xl font-medium tracking-tight leading-tight max-w-4xl">To explore every kind of fashion and brand, and give anyone the tools to find and share their very best style.</p>
+    </div>
+  </section>
+</Base>

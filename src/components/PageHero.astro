@@ -1,0 +1,8 @@
+---
+const { eyebrow, title, intro } = Astro.props;
+---
+<section class="wrap pt-14 md:pt-24 pb-12 md:pb-20 border-b border-line">
+  <p class="eyebrow reveal">{eyebrow}</p>
+  <h1 class="display reveal mt-5 text-[clamp(3.25rem,13vw,10rem)] break-words">{title}</h1>
+  <p class="reveal mt-8 max-w-2xl text-lg md:text-xl text-ink/75">{intro}</p>
+</section>

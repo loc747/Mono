@@ -1,0 +1,10 @@
+---
+import { u } from '../lib/url';
+import Base from '../layouts/Base.astro';
+---
+<Base title="Not found">
+  <section class="wrap py-24 md:py-40">
+    <h1 class="display text-[clamp(5rem,25vw,18rem)]">404</h1>
+    <a href={u('/')} class="eyebrow underline underline-offset-4">Back home →</a>
+  </section>
+</Base>
