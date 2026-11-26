@@ -14,7 +14,7 @@ const studies = [
 ---
 <Base title="Research" description="Mono’s design research: practical, brandable studies on how people dress.">
   <PageHero eyebrow="Research" title="Studies." intro="Ongoing research and development into practical, brandable design. Each study ends in something wearable." />
-  <section class="wrap py-12 md:py-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+  <section id="studies-grid" class="wrap py-12 md:py-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
     {studies.map(([l, t, bg, fg, d]) => (
       <div>
         <Tile label={l} title={t} bg={bg} fg={fg} />
@@ -22,4 +22,8 @@ const studies = [
       </div>
     ))}
   </section>
+  <script>
+    import { hydrateStudies } from '../lib/content';
+    hydrateStudies(document.getElementById('studies-grid'));
+  </script>
 </Base>

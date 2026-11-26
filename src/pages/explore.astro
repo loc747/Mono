@@ -23,7 +23,7 @@ const filters = [['all', 'All'], ['workwear', 'Workwear'], ['minimal', 'Minimal'
         <button data-filter={k} aria-pressed={i === 0} class="eyebrow shrink-0 border border-ink px-5 py-3 aria-pressed:bg-ink aria-pressed:text-white transition-colors">{l}</button>
       ))}
     </div>
-    <div class="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+    <div id="explore-grid" class="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
       {items.map(([l, t, bg, fg, cat]) => <div data-cat={cat}><Tile label={l} title={t} bg={bg} fg={fg} /></div>)}
     </div>
   </section>
@@ -35,5 +35,9 @@ const filters = [['all', 'All'], ['workwear', 'Workwear'], ['minimal', 'Minimal'
         document.querySelectorAll('[data-cat]').forEach(function (c) { c.hidden = !(f === 'all' || c.dataset.cat === f); });
       });
     });
+  </script>
+  <script>
+    import { hydrateArchive } from '../lib/content';
+    hydrateArchive(document.getElementById('explore-grid'));
   </script>
 </Base>

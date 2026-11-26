@@ -1,0 +1,206 @@
+---
+import Base from '../../layouts/Base.astro';
+import { u } from '../../lib/url';
+---
+<Base title="Admin" noindex>
+  <section class="wrap py-10 md:py-16">
+    <p id="state" class="eyebrow" role="status">Checking access…</p>
+    <p id="denied" hidden class="mt-4 text-lg">You don’t have access to this page. <a class="underline underline-offset-4" href={u('/')}>Back to site</a></p>
+
+    <div id="console" hidden>
+      <div class="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-6">
+        <h1 class="display text-[clamp(2.75rem,9vw,6rem)]">Console</h1>
+        <div class="flex items-center gap-3 text-sm"><span id="me" class="text-ink/70"></span><button id="signout" class="btn btn-ghost !py-2 !min-h-0">Sign out</button></div>
+      </div>
+      <div id="tabs" role="tablist" class="flex gap-2 overflow-x-auto -mx-4 px-4 py-4"></div>
+      <p id="msg" role="status" class="msg"></p>
+      <div id="panel" class="mt-4"></div>
+    </div>
+  </section>
+  <script>
+    import { supabase } from '../../lib/supabase';
+    import { getSession, getProfile } from '../../lib/auth';
+    import { h, safeColor } from '../../lib/dom';
+    import { u } from '../../lib/url';
+
+    type Field = { k: string; l: string; type?: 'text' | 'textarea' | 'color' | 'number' | 'checkbox' | 'select'; req?: boolean; def?: any; options?: string[] };
+    const colorFields: Field[] = [
+      { k: 'bg', l: 'Background', type: 'color', def: '#0a0a0a' },
+      { k: 'fg', l: 'Text color', type: 'color', def: '#ffffff' },
+    ];
+    const RES: Record<string, { label: string; table: string; fields: Field[] }> = {
+      studies: { label: 'Research', table: 'studies', fields: [
+        { k: 'title', l: 'Title', req: true }, { k: 'label', l: 'Label (e.g. Study 07)' },
+        { k: 'description', l: 'Description', type: 'textarea' }, ...colorFields,
+        { k: 'sort', l: 'Order', type: 'number', def: 0 }, { k: 'published', l: 'Published', type: 'checkbox', def: false },
+      ] },
+      archive: { label: 'Explore', table: 'archive_items', fields: [
+        { k: 'title', l: 'Title', req: true }, { k: 'label', l: 'Label (Style / Brand)' },
+        { k: 'category', l: 'Category', type: 'select', options: ['workwear', 'minimal', 'street', 'brand'], def: 'minimal' }, ...colorFields,
+        { k: 'sort', l: 'Order', type: 'number', def: 0 }, { k: 'published', l: 'Published', type: 'checkbox', def: false },
+      ] },
+    };
+    const TABS = [['studies', 'Research'], ['archive', 'Explore'], ['submissions', 'Community'], ['members', 'Members'], ['inquiries', 'Inquiries']];
+    const $ = (id: string) => document.getElementById(id)!;
+    const say = (t: string, cls = 'ok') => { $('msg').textContent = t; $('msg').className = 'msg ' + cls; };
+    const db = supabase!;
+    let myId = '';
+
+    const fmt = (d: string) => new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    const btn = (text: string, fn: () => void, ghost = true) =>
+      h('button', { type: 'button', class: `btn ${ghost ? 'btn-ghost' : ''} !py-2 !px-4 !min-h-0`, onclick: fn }, text);
+    const card = (...kids: any[]) => h('div', { class: 'border border-line bg-white/50 p-4 md:p-5 flex flex-wrap items-start justify-between gap-3' }, ...kids);
+    const empty = (t: string) => h('p', { class: 'text-ink/60 py-8' }, t);
+
+    function input(f: Field, val: any) {
+      const id = 'f_' + f.k;
+      if (f.type === 'textarea') return h('textarea', { id, rows: 3, class: 'field' }, val ?? '');
+      if (f.type === 'select') return h('select', { id, class: 'field' }, f.options!.map((o) => h('option', { value: o, selected: o === (val ?? f.def) }, o)));
+      if (f.type === 'checkbox') return h('input', { id, type: 'checkbox', checked: !!val, class: 'w-5 h-5 accent-black' });
+      if (f.type === 'color') return h('input', { id, type: 'color', value: safeColor(val ?? f.def, f.def), class: 'h-10 w-20 bg-transparent' });
+      return h('input', { id, type: f.type === 'number' ? 'number' : 'text', value: val ?? f.def ?? '', required: f.req, class: 'field' });
+    }
+    function readForm(fields: Field[]) {
+      const out: Record<string, any> = {};
+      for (const f of fields) {
+        const el = document.getElementById('f_' + f.k) as HTMLInputElement;
+        out[f.k] = f.type === 'checkbox' ? el.checked : f.type === 'number' ? Number(el.value || 0) : el.value.trim();
+      }
+      return out;
+    }
+
+    async function crud(key: string) {
+      const r = RES[key], panel = $('panel');
+      panel.replaceChildren(empty('Loading…'));
+      const { data, error } = await db.from(r.table).select('*').order('sort').order('created_at', { ascending: false });
+      if (error) return panel.replaceChildren(empty('Could not load: ' + error.message));
+      const rows = data as any[];
+
+      const showForm = (row?: any) => {
+        const form = h('form', { class: 'border border-ink p-5 md:p-6 space-y-5 mb-6', novalidate: true },
+          h('h2', { class: 'display text-3xl' }, row ? 'Edit' : 'New ' + r.label),
+          r.fields.map((f) => h('div', { class: f.type === 'checkbox' ? 'flex items-center gap-3' : '' },
+            h('label', { for: 'f_' + f.k, class: 'eyebrow' }, f.l), input(f, row?.[f.k]))),
+          h('div', { class: 'flex gap-3' }, h('button', { class: 'btn', type: 'submit' }, 'Save'), btn('Cancel', () => crud(key))));
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const v = readForm(r.fields);
+          if (!v.title) return say('Title is required.', 'err');
+          const res = row ? await db.from(r.table).update(v).eq('id', row.id) : await db.from(r.table).insert(v);
+          if (res.error) return say(res.error.message, 'err');
+          say('Saved.'); crud(key);
+        });
+        panel.replaceChildren(form);
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+
+      panel.replaceChildren(
+        h('div', { class: 'mb-4' }, btn('+ New ' + r.label, () => showForm(), false)),
+        h('div', { class: 'space-y-3' }, rows.length ? rows.map((row) => card(
+          h('div', { class: 'flex items-center gap-4 min-w-0' },
+            h('span', { class: 'w-10 h-10 shrink-0 border border-line', style: `background:${safeColor(row.bg, '#111111')}` }),
+            h('div', { class: 'min-w-0' },
+              h('p', { class: 'font-semibold break-words' }, row.title),
+              h('p', { class: 'text-xs text-ink/60' }, [row.label, row.category, row.published ? 'Published' : 'Draft'].filter(Boolean).join(' · ')))),
+          h('div', { class: 'flex gap-2' },
+            btn(row.published ? 'Unpublish' : 'Publish', async () => {
+              const { error } = await db.from(r.table).update({ published: !row.published }).eq('id', row.id);
+              error ? say(error.message, 'err') : crud(key);
+            }),
+            btn('Edit', () => showForm(row)),
+            btn('Delete', async () => {
+              if (!confirm(`Delete “${row.title}”? This cannot be undone.`)) return;
+              const { error } = await db.from(r.table).delete().eq('id', row.id);
+              error ? say(error.message, 'err') : (say('Deleted.'), crud(key));
+            })))) : empty('Nothing here yet. Create the first one.')));
+    }
+
+    async function submissions() {
+      const panel = $('panel');
+      const { data, error } = await db.from('submissions').select('*').order('created_at', { ascending: false });
+      if (error) return panel.replaceChildren(empty('Could not load: ' + error.message));
+      const set = async (id: string, status: string) => {
+        const { error } = await db.from('submissions').update({ status }).eq('id', id);
+        error ? say(error.message, 'err') : submissions();
+      };
+      panel.replaceChildren(h('div', { class: 'space-y-3' }, (data as any[]).length ? (data as any[]).map((s) => card(
+        h('div', { class: 'min-w-0 max-w-xl' },
+          h('p', { class: 'font-semibold break-words' }, s.title),
+          h('p', { class: 'text-xs text-ink/60' }, `${s.author_name} · ${fmt(s.created_at)} · ${s.status}`),
+          s.description && h('p', { class: 'mt-2 text-sm break-words' }, s.description),
+          s.image_url && h('a', { href: s.image_url, target: '_blank', rel: 'noopener noreferrer', class: 'mt-2 inline-block text-sm underline' }, 'View image')),
+        h('div', { class: 'flex flex-wrap gap-2' },
+          s.status !== 'approved' && btn('Approve', () => set(s.id, 'approved'), false),
+          s.status !== 'rejected' && btn('Reject', () => set(s.id, 'rejected')),
+          btn('Delete', async () => {
+            if (!confirm('Delete this submission?')) return;
+            const { error } = await db.from('submissions').delete().eq('id', s.id);
+            error ? say(error.message, 'err') : submissions();
+          })))) : empty('No submissions yet.')));
+    }
+
+    async function members() {
+      const panel = $('panel');
+      const { data, error } = await db.from('profiles').select('*').order('created_at', { ascending: false });
+      if (error) return panel.replaceChildren(empty('Could not load: ' + error.message));
+      panel.replaceChildren(h('div', { class: 'space-y-3' }, (data as any[]).map((m) => card(
+        h('div', { class: 'min-w-0' },
+          h('p', { class: 'font-semibold break-words' }, m.display_name),
+          h('p', { class: 'text-xs text-ink/60' }, `@${m.username} · joined ${fmt(m.created_at)} · ${m.role}`)),
+        m.id === myId ? h('span', { class: 'text-xs text-ink/60' }, 'You') :
+          btn(m.role === 'admin' ? 'Remove admin' : 'Make admin', async () => {
+            if (!confirm(m.role === 'admin' ? `Remove admin from ${m.display_name}?` : `Give ${m.display_name} full admin access?`)) return;
+            const { error } = await db.from('profiles').update({ role: m.role === 'admin' ? 'member' : 'admin' }).eq('id', m.id);
+            error ? say(error.message, 'err') : members();
+          })))));
+    }
+
+    async function inquiries() {
+      const panel = $('panel');
+      const { data, error } = await db.from('inquiries').select('*').order('created_at', { ascending: false });
+      if (error) return panel.replaceChildren(empty('Could not load: ' + error.message));
+      panel.replaceChildren(h('div', { class: 'space-y-3' }, (data as any[]).length ? (data as any[]).map((q) => card(
+        h('div', { class: 'min-w-0 max-w-2xl' },
+          h('p', { class: 'font-semibold break-words' }, (q.is_read ? '' : '● ') + q.name,
+            h('span', { class: 'font-normal text-ink/60' }, ` · ${q.topic}`)),
+          h('p', { class: 'text-xs text-ink/60' }, `${q.email} · ${fmt(q.created_at)}`),
+          h('p', { class: 'mt-2 text-sm whitespace-pre-wrap break-words' }, q.message)),
+        h('div', { class: 'flex gap-2' },
+          btn(q.is_read ? 'Mark unread' : 'Mark read', async () => {
+            const { error } = await db.from('inquiries').update({ is_read: !q.is_read }).eq('id', q.id);
+            error ? say(error.message, 'err') : inquiries();
+          }),
+          btn('Delete', async () => {
+            if (!confirm('Delete this inquiry?')) return;
+            const { error } = await db.from('inquiries').delete().eq('id', q.id);
+            error ? say(error.message, 'err') : inquiries();
+          })))) : empty('No inquiries yet.')));
+    }
+
+    function show(tab: string) {
+      say('');
+      document.querySelectorAll('#tabs button').forEach((b) => b.setAttribute('aria-selected', String((b as HTMLElement).dataset.tab === tab)));
+      if (tab in RES) crud(tab); else if (tab === 'submissions') submissions(); else if (tab === 'members') members(); else inquiries();
+    }
+
+    (async () => {
+      const state = $('state');
+      if (!db) { state.textContent = 'Backend not configured.'; return; }
+      const s = await getSession();
+      if (!s) return location.replace(u('/login/'));
+      const p = await getProfile(s.user.id);
+      if (!p) return location.replace(u('/profile/?welcome=1'));
+      if (p.role !== 'admin') { state.hidden = true; $('denied').hidden = false; return; }
+      myId = p.id;
+      state.hidden = true; $('console').hidden = false;
+      $('me').textContent = p.display_name;
+      $('tabs').replaceChildren(...TABS.map(([k, l]) => h('button', {
+        type: 'button', role: 'tab', 'data-tab': k, 'aria-selected': 'false',
+        class: 'eyebrow shrink-0 border border-ink px-5 py-3 aria-selected:bg-ink aria-selected:text-white', onclick: () => show(k),
+      }, l)));
+      $('signout').addEventListener('click', async () => { await db.auth.signOut(); location.replace(u('/login/')); });
+      db.auth.onAuthStateChange((e) => { if (e === 'SIGNED_OUT') location.replace(u('/login/')); });
+      show('studies');
+    })();
+  </script>
+</Base>

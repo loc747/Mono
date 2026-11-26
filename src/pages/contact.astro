@@ -25,18 +25,25 @@ const field = 'w-full bg-transparent border-0 border-b border-ink py-3 text-base
       <div><p class="eyebrow">Email</p><a class="mt-2 inline-block text-lg underline underline-offset-4" href="mailto:hello@mono.example.com">hello@mono.example.com</a></div>
     </aside>
   </section>
-  <script is:inline>
-    (function () {
-      var p = new URLSearchParams(location.search).get('topic'), sel = document.getElementById('topic');
-      if (p && sel.querySelector('option[value="' + p + '"]')) sel.value = p;
-      var f = document.getElementById('contact-form'), s = document.getElementById('form-status');
-      f.addEventListener('submit', function (e) {
-        e.preventDefault();
-        if (!f.checkValidity()) { s.textContent = 'Please complete all fields with a valid email.'; f.reportValidity(); return; }
-        var d = new FormData(f);
-        location.href = 'mailto:hello@mono.example.com?subject=' + encodeURIComponent('[' + d.get('topic') + '] ' + d.get('name')) + '&body=' + encodeURIComponent(d.get('message') + '\n\n' + d.get('email'));
-        s.textContent = 'Opening your email app…';
-      });
-    })();
+  <script>
+    import { supabase } from '../lib/supabase';
+    const p = new URLSearchParams(location.search).get('topic');
+    const sel = document.getElementById('topic') as HTMLSelectElement;
+    if (p && sel.querySelector(`option[value="${CSS.escape(p)}"]`)) sel.value = p;
+    const f = document.getElementById('contact-form') as HTMLFormElement;
+    const s = document.getElementById('form-status')!;
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!f.checkValidity()) { s.textContent = 'Please complete all fields with a valid email.'; f.reportValidity(); return; }
+      const d = new FormData(f);
+      const row = { name: String(d.get('name')).trim(), email: String(d.get('email')).trim(), topic: String(d.get('topic')), message: String(d.get('message')).trim() };
+      if (supabase) {
+        s.textContent = 'Sending…';
+        const { error } = await supabase.from('inquiries').insert(row);
+        if (!error) { s.textContent = 'Thank you. We’ll be in touch soon.'; f.reset(); return; }
+        s.textContent = 'Could not send. Opening your email app instead…';
+      }
+      location.href = 'mailto:hello@mono.example.com?subject=' + encodeURIComponent(`[${row.topic}] ${row.name}`) + '&body=' + encodeURIComponent(row.message + '\n\n' + row.email);
+    });
   </script>
 </Base>

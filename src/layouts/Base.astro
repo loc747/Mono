@@ -1,8 +1,8 @@
 ---
 import { u } from '../lib/url';
 import '../styles/global.css';
-interface Props { title?: string; description?: string; }
-const { title, description = 'Mono is a New York–inspired fashion design lab researching practical, brandable design — and helping everyone find and share their best style.' } = Astro.props;
+interface Props { title?: string; description?: string; noindex?: boolean; }
+const { title, noindex = false, description = 'Mono is a New York–inspired fashion design lab researching practical, brandable design — and helping everyone find and share their best style.' } = Astro.props;
 const fullTitle = title ? `${title} — Mono` : 'Mono — Fashion Design Lab, New York';
 const path = Astro.url.pathname;
 const nav = [
@@ -20,6 +20,7 @@ const nav = [
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex,nofollow" />}
     <meta name="theme-color" content="#0a0a0a" />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
@@ -41,7 +42,10 @@ const nav = [
                class="eyebrow py-2 border-b-2 border-transparent hover:border-ink aria-[current=page]:border-ink">{n.label}</a>
           ))}
         </nav>
-        <a href={u('/contact/')} class="hidden md:inline-block eyebrow bg-ink text-white px-5 py-3 hover:bg-accent hover:text-ink transition-colors">Let’s talk</a>
+        <div class="hidden md:flex items-center gap-6">
+          <a href={u('/login/')} class="eyebrow py-2 border-b-2 border-transparent hover:border-ink" data-account>Sign in</a>
+          <a href={u('/contact/')} class="eyebrow bg-ink text-white px-5 py-3 hover:bg-accent hover:text-ink transition-colors">Let’s talk</a>
+        </div>
         <button id="menu-btn" class="md:hidden -mr-2 p-3" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open menu">
           <span class="block w-6 h-0.5 bg-ink mb-1.5 transition-transform origin-center" data-bar></span>
           <span class="block w-6 h-0.5 bg-ink transition-transform origin-center" data-bar></span>
@@ -54,6 +58,7 @@ const nav = [
         {nav.map(n => (
           <a href={n.href} class="display text-5xl py-4 border-b border-white/15 hover:text-accent">{n.label}</a>
         ))}
+        <a href={u('/login/')} class="display text-5xl py-4 border-b border-white/15 hover:text-accent" data-account>Sign in</a>
         <p class="eyebrow mt-10 text-white/60">New York · Est. 2025</p>
       </nav>
     </div>
@@ -101,6 +106,18 @@ const nav = [
         var io = new IntersectionObserver(function (es) { es.forEach(function (x) { if (x.isIntersecting) { x.target.classList.add('in'); io.unobserve(x.target); } }); }, { threshold: .12 });
         els.forEach(function (e) { io.observe(e); });
       })();
+    </script>
+    <script>
+      // Swap "Sign in" for "Account" when a session exists (UI only; access is enforced server-side by RLS).
+      import { supabase } from '../lib/supabase';
+      import { u } from '../lib/url';
+      supabase?.auth.getSession().then(({ data }) => {
+        if (!data.session) return;
+        document.querySelectorAll<HTMLAnchorElement>('[data-account]').forEach((a) => {
+          a.textContent = 'Account';
+          a.href = u('/profile/');
+        });
+      });
     </script>
   </body>
 </html>
