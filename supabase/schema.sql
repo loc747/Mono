@@ -116,5 +116,14 @@ create policy inquiries_insert on public.inquiries for insert to anon, authentic
 create policy inquiries_admin on public.inquiries for all to authenticated
   using (public.is_admin()) with check (public.is_admin());
 
+-- Table privileges. Newer Supabase projects do not auto-grant these; RLS above still decides row access.
+grant usage on schema public to anon, authenticated;
+grant select on public.studies, public.archive_items, public.submissions to anon;
+grant insert on public.inquiries to anon;
+grant select, insert, update on public.profiles to authenticated;
+grant select, insert, update, delete on public.studies, public.archive_items,
+  public.submissions, public.inquiries to authenticated;
+grant execute on function public.is_admin() to anon, authenticated;
+
 -- After you sign up and create your profile, make yourself the first admin:
 --   update public.profiles set role = 'admin' where username = 'YOUR_USERNAME';
