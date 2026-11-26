@@ -1,7 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
-import Garment from '../components/Garment.astro';
 import { dict, type Lang } from '../i18n/dict';
 const { lang } = Astro.props as { lang: Lang };
 const d = dict[lang].about;
@@ -20,35 +19,6 @@ const d = dict[lang].about;
       ))}
     </div>
   </section>
-  <section class="wrap pb-16 md:pb-28 grid gap-12 md:grid-cols-12">
-    <p class="eyebrow md:col-span-3 reveal">{d.whoEyebrow}</p>
-    <div class="md:col-span-9 grid gap-px bg-line border border-line md:grid-cols-2">
-      <div class="reveal bg-paper p-6 md:p-10">
-        <h2 class="display text-4xl md:text-5xl">{d.areTitle}</h2>
-        <ul class="mt-6 space-y-3 md:text-lg">{d.are.map((t) => <li class="flex gap-3"><span aria-hidden="true">+</span><span>{t}</span></li>)}</ul>
-      </div>
-      <div class="reveal bg-paper p-6 md:p-10">
-        <h2 class="display text-4xl md:text-5xl text-ink/50">{d.notTitle}</h2>
-        <ul class="mt-6 space-y-3 md:text-lg text-ink/70">{d.not.map((t) => <li class="flex gap-3"><span aria-hidden="true">–</span><span>{t}</span></li>)}</ul>
-      </div>
-    </div>
-  </section>
-
-  <section class="wrap pb-16 md:pb-28">
-    <p class="eyebrow reveal">{d.processEyebrow}</p>
-    <h2 class="display reveal mt-4 text-5xl md:text-8xl">{d.processTitle[0]}<br />{d.processTitle[1]}</h2>
-    <ol class="mt-12 grid gap-px bg-line border border-line md:grid-cols-5">
-      {d.steps.map(([t, text], i) => (
-        <li class="reveal bg-paper p-6">
-          <Garment kind={['shirt', 'jacket', 'coat', 'trousers', 'tote'][i]} class="w-14 h-auto" />
-          <span class="eyebrow mt-4 block">0{i + 1}</span>
-          <h3 class="display text-3xl mt-2">{t}</h3>
-          <p class="mt-3 text-ink/75 text-sm">{text}</p>
-        </li>
-      ))}
-    </ol>
-  </section>
-
   <section class="wrap pb-12">
     <div class="bg-ink text-white p-8 md:p-16">
       <p class="eyebrow text-accent">{d.mission}</p>

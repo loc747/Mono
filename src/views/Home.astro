@@ -1,12 +1,11 @@
 ---
 import Base from '../layouts/Base.astro';
 import Tile from '../components/Tile.astro';
-import Garment from '../components/Garment.astro';
 import { dict, type Lang } from '../i18n/dict';
 import { lp } from '../lib/url';
 const { lang } = Astro.props as { lang: Lang };
 const d = dict[lang].home;
-const tileStyles = [['#0a0a0a', '#fff', 'jacket'], ['#2b2b2b', '#fff', 'coat'], ['#e5ff3a', '#0a0a0a', 'shirt']];
+const tileStyles = [['#0a0a0a', '#fff'], ['#2b2b2b', '#fff'], ['#e5ff3a', '#0a0a0a']];
 ---
 <Base lang={lang}>
   <section class="wrap pt-12 md:pt-20 pb-16 md:pb-28">
@@ -31,31 +30,6 @@ const tileStyles = [['#0a0a0a', '#fff', 'jacket'], ['#2b2b2b', '#fff', 'coat'], 
     </div>
   </div>
 
-  <section class="wrap py-20 md:py-28">
-    <div class="grid gap-6 md:grid-cols-12 md:items-end">
-      <div class="md:col-span-7">
-        <p class="eyebrow reveal">{d.kitEyebrow}</p>
-        <h2 class="display reveal mt-4 text-5xl md:text-8xl">{d.kitTitle[0]}<br />{d.kitTitle[1]}</h2>
-      </div>
-      <p class="reveal md:col-span-5 text-ink/75 md:text-lg">{d.kitIntro}</p>
-    </div>
-    <div class="mt-12 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-px bg-line border border-line">
-      {d.kit.map(([no, name, kind]) => (
-        <div class="reveal bg-paper p-4 md:p-6 group hover:bg-ink hover:text-white transition-colors">
-          <Garment kind={kind} class="w-full h-auto aspect-[5/6] group-hover:text-accent transition-colors" />
-          <p class="eyebrow mt-3 flex justify-between"><span>{no}</span><span>{name}</span></p>
-        </div>
-      ))}
-    </div>
-  </section>
-
-  <section class="bg-ink text-white">
-    <div class="wrap py-20 md:py-32">
-      <p class="eyebrow text-accent reveal">{d.manifestoEyebrow}</p>
-      <p class="reveal mt-6 max-w-5xl text-3xl md:text-6xl font-medium tracking-tight leading-[1.1]">{d.manifesto}</p>
-    </div>
-  </section>
-
   <section class="wrap py-20 md:py-32 grid gap-12 md:grid-cols-12">
     <p class="eyebrow md:col-span-3 reveal">{d.whatWeDo}</p>
     <div class="md:col-span-9 grid gap-px bg-line border border-line">
@@ -75,36 +49,7 @@ const tileStyles = [['#0a0a0a', '#fff', 'jacket'], ['#2b2b2b', '#fff', 'coat'], 
       <a href={lp(lang, '/research/')} class="eyebrow underline underline-offset-4 shrink-0 pb-2">{d.allResearch}</a>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-      {d.tiles.map(([label, title], i) => <Tile label={label} title={title} bg={tileStyles[i][0]} fg={tileStyles[i][1]} garment={tileStyles[i][2]} />)}
-    </div>
-  </section>
-
-  <section class="wrap pb-20 md:pb-32 grid gap-10 md:grid-cols-12">
-    <div class="md:col-span-5">
-      <p class="eyebrow reveal">{d.paletteEyebrow}</p>
-      <h2 class="display reveal mt-4 text-5xl md:text-7xl">{d.paletteTitle[0]}<br />{d.paletteTitle[1]}</h2>
-      <p class="reveal mt-6 text-ink/75 md:text-lg max-w-md">{d.paletteIntro}</p>
-    </div>
-    <div class="md:col-span-7 grid grid-cols-3 gap-px bg-line border border-line">
-      {d.swatches.map(([name, hex]) => (
-        <div class="reveal bg-paper">
-          <div class="aspect-square" style={`background:${hex}`}></div>
-          <p class="p-3 eyebrow flex flex-wrap justify-between gap-x-2"><span>{name}</span><span class="opacity-60 normal-case tracking-normal">{hex}</span></p>
-        </div>
-      ))}
-    </div>
-  </section>
-
-  <section class="wrap pb-20 md:pb-32">
-    <p class="eyebrow reveal">{d.notesEyebrow}</p>
-    <div class="mt-8 grid gap-px bg-line border border-line md:grid-cols-3">
-      {d.notes.map(([t, text], i) => (
-        <article class="reveal bg-paper p-6 md:p-8">
-          <span class="eyebrow">0{i + 1}</span>
-          <h3 class="display text-3xl md:text-4xl mt-3">{t}</h3>
-          <p class="mt-4 text-ink/75">{text}</p>
-        </article>
-      ))}
+      {d.tiles.map(([label, title], i) => <Tile label={label} title={title} bg={tileStyles[i][0]} fg={tileStyles[i][1]} />)}
     </div>
   </section>
 
