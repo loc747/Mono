@@ -1,6 +1,6 @@
 ---
-const { eyebrow, title, intro, lang = 'en' } = Astro.props;
-const size = lang === 'ko' ? 'text-[clamp(2.75rem,11vw,8rem)]' : 'text-[clamp(3.25rem,13vw,10rem)]';
+const { eyebrow, title, intro } = Astro.props;
+const size = 'text-[clamp(3.25rem,13vw,10rem)]';
 ---
 <section class="wrap pt-14 md:pt-24 pb-12 md:pb-20 border-b border-line">
   <p class="eyebrow reveal">{eyebrow}</p>

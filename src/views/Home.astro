@@ -5,7 +5,6 @@ import { dict, type Lang } from '../i18n/dict';
 import { lp } from '../lib/url';
 const { lang } = Astro.props as { lang: Lang };
 const d = dict[lang].home;
-const ko = lang === 'ko';
 const tileStyles = [['#0a0a0a', '#fff'], ['#2b2b2b', '#fff'], ['#e5ff3a', '#0a0a0a']];
 ---
 <Base lang={lang}>
@@ -37,7 +36,7 @@ const tileStyles = [['#0a0a0a', '#fff'], ['#2b2b2b', '#fff'], ['#e5ff3a', '#0a0a
       {d.items.map(([n, t, text, slug]) => (
         <a href={lp(lang, `/${slug}/`)} class="reveal bg-paper p-6 md:p-10 grid md:grid-cols-[5rem_1fr_2fr] gap-3 md:gap-8 hover:bg-accent transition-colors">
           <span class="eyebrow">{n}</span>
-          <h2 class={`display ${ko ? 'text-3xl md:text-4xl' : 'text-4xl md:text-5xl'}`}>{t}</h2>
+          <h2 class={`display text-4xl md:text-5xl`}>{t}</h2>
           <p class="text-ink/75 md:text-lg">{text}</p>
         </a>
       ))}
@@ -46,7 +45,7 @@ const tileStyles = [['#0a0a0a', '#fff'], ['#2b2b2b', '#fff'], ['#e5ff3a', '#0a0a
 
   <section class="wrap pb-20 md:pb-32">
     <div class="flex items-end justify-between gap-6 mb-10">
-      <h2 class={`display reveal ${ko ? 'text-4xl md:text-7xl' : 'text-5xl md:text-8xl'}`}>{d.selected[0]}<br />{d.selected[1]}</h2>
+      <h2 class={`display reveal text-5xl md:text-8xl`}>{d.selected[0]}<br />{d.selected[1]}</h2>
       <a href={lp(lang, '/research/')} class="eyebrow underline underline-offset-4 shrink-0 pb-2">{d.allResearch}</a>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -57,7 +56,7 @@ const tileStyles = [['#0a0a0a', '#fff'], ['#2b2b2b', '#fff'], ['#e5ff3a', '#0a0a
   <section class="bg-ink text-white">
     <div class="wrap py-20 md:py-32 text-center">
       <p class="eyebrow reveal text-accent">{d.joinEyebrow}</p>
-      <h2 class={`display reveal mt-6 ${ko ? 'text-[clamp(2.25rem,8vw,7rem)]' : 'text-[clamp(2.75rem,10vw,9rem)]'}`}>{d.joinTitle[0]}<br />{d.joinTitle[1]}</h2>
+      <h2 class={`display reveal mt-6 text-[clamp(2.75rem,10vw,9rem)]`}>{d.joinTitle[0]}<br />{d.joinTitle[1]}</h2>
       <a href={lp(lang, '/community/')} class="reveal mt-12 inline-block eyebrow bg-accent text-ink px-8 py-4 hover:bg-white transition-colors">{d.joinBtn}</a>
     </div>
   </section>
