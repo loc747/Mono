@@ -22,16 +22,20 @@ import { u } from '../../lib/url';
     import { getSession, getProfile } from '../../lib/auth';
     import { h, safeColor } from '../../lib/dom';
     import { u } from '../../lib/url';
+    import { imagePicker, uploadImage, removeImage } from '../../lib/upload';
 
-    type Field = { k: string; l: string; type?: 'text' | 'textarea' | 'color' | 'number' | 'checkbox' | 'select'; req?: boolean; def?: any; options?: string[] };
+    type Field = { k: string; l: string; type?: 'text' | 'textarea' | 'color' | 'number' | 'checkbox' | 'select' | 'image'; req?: boolean; def?: any; options?: string[] };
     const colorFields: Field[] = [
       { k: 'bg', l: 'Background', type: 'color', def: '#0a0a0a' },
       { k: 'fg', l: 'Text color', type: 'color', def: '#ffffff' },
     ];
+    const PICKER = { choose: 'Choose an image or drop it here', change: 'Choose a different image', hint: 'PNG, JPG or WEBP · up to 5 MB', remove: 'Remove image', badType: 'Please use a PNG, JPG or WEBP file.', tooBig: 'That file is over 5 MB.' };
+    let picker: ReturnType<typeof imagePicker> | null = null;
     const RES: Record<string, { label: string; table: string; fields: Field[] }> = {
       studies: { label: 'Research', table: 'studies', fields: [
         { k: 'title', l: 'Title', req: true }, { k: 'label', l: 'Label (e.g. Study 07)' },
-        { k: 'description', l: 'Description', type: 'textarea' }, ...colorFields,
+        { k: 'description', l: 'Description', type: 'textarea' },
+        { k: 'image_url', l: 'Image (optional — shown instead of the color block)', type: 'image' }, ...colorFields,
         { k: 'sort', l: 'Order', type: 'number', def: 0 }, { k: 'published', l: 'Published', type: 'checkbox', def: false },
       ] },
       archive: { label: 'Explore', table: 'archive_items', fields: [
@@ -54,6 +58,7 @@ import { u } from '../../lib/url';
 
     function input(f: Field, val: any) {
       const id = 'f_' + f.k;
+      if (f.type === 'image') return (picker = imagePicker(id, PICKER, val)).el;
       if (f.type === 'textarea') return h('textarea', { id, rows: 3, class: 'field' }, val ?? '');
       if (f.type === 'select') return h('select', { id, class: 'field' }, f.options!.map((o) => h('option', { value: o, selected: o === (val ?? f.def) }, o)));
       if (f.type === 'checkbox') return h('input', { id, type: 'checkbox', checked: !!val, class: 'w-5 h-5 accent-black' });
@@ -63,6 +68,7 @@ import { u } from '../../lib/url';
     function readForm(fields: Field[]) {
       const out: Record<string, any> = {};
       for (const f of fields) {
+        if (f.type === 'image') continue;
         const el = document.getElementById('f_' + f.k) as HTMLInputElement;
         out[f.k] = f.type === 'checkbox' ? el.checked : f.type === 'number' ? Number(el.value || 0) : el.value.trim();
       }
@@ -86,8 +92,16 @@ import { u } from '../../lib/url';
           e.preventDefault();
           const v = readForm(r.fields);
           if (!v.title) return say('Title is required.', 'err');
+          const hasImage = r.fields.some((f) => f.type === 'image');
+          const old = row?.image_url ?? null;
+          const file = hasImage ? picker?.file() : null;
+          if (file) {
+            say('Uploading image…');
+            try { v.image_url = await uploadImage(file, key); } catch (err: any) { return say('Upload failed: ' + err.message, 'err'); }
+          } else if (hasImage && picker?.removed()) v.image_url = null;
           const res = row ? await db.from(r.table).update(v).eq('id', row.id) : await db.from(r.table).insert(v);
-          if (res.error) return say(res.error.message, 'err');
+          if (res.error) { if (file) await removeImage(v.image_url); return say(res.error.message, 'err'); }
+          if (old && 'image_url' in v && v.image_url !== old) await removeImage(old);
           say('Saved.'); crud(key);
         });
         panel.replaceChildren(form);
@@ -98,7 +112,9 @@ import { u } from '../../lib/url';
         h('div', { class: 'mb-4' }, btn('+ New ' + r.label, () => showForm(), false)),
         h('div', { class: 'space-y-3' }, rows.length ? rows.map((row) => card(
           h('div', { class: 'flex items-center gap-4 min-w-0' },
-            h('span', { class: 'w-10 h-10 shrink-0 border border-line', style: `background:${safeColor(row.bg, '#111111')}` }),
+            row.image_url
+              ? h('img', { src: row.image_url, alt: '', class: 'w-10 h-10 shrink-0 border border-line object-cover' })
+              : h('span', { class: 'w-10 h-10 shrink-0 border border-line', style: `background:${safeColor(row.bg, '#111111')}` }),
             h('div', { class: 'min-w-0' },
               h('p', { class: 'font-semibold break-words' }, row.title),
               h('p', { class: 'text-xs text-ink/60' }, [row.label, row.category, row.published ? 'Published' : 'Draft'].filter(Boolean).join(' · ')))),
@@ -111,31 +127,45 @@ import { u } from '../../lib/url';
             btn('Delete', async () => {
               if (!confirm(`Delete “${row.title}”? This cannot be undone.`)) return;
               const { error } = await db.from(r.table).delete().eq('id', row.id);
-              error ? say(error.message, 'err') : (say('Deleted.'), crud(key));
+              if (error) return say(error.message, 'err');
+              await removeImage(row.image_url);
+              say('Deleted.'); crud(key);
             })))) : empty('Nothing here yet. Create the first one.')));
     }
 
     async function submissions() {
       const panel = $('panel');
-      const { data, error } = await db.from('submissions').select('*').order('created_at', { ascending: false });
+      const { data: raw, error } = await db.from('submissions').select('*').order('created_at', { ascending: false });
       if (error) return panel.replaceChildren(empty('Could not load: ' + error.message));
+      const rank: Record<string, number> = { pending: 0, approved: 1, rejected: 2 };
+      const data = (raw as any[]).sort((a, b) => rank[a.status] - rank[b.status]);
+      const pending = data.filter((s) => s.status === 'pending').length;
+      updateBadge(pending);
       const set = async (id: string, status: string) => {
         const { error } = await db.from('submissions').update({ status }).eq('id', id);
         error ? say(error.message, 'err') : submissions();
       };
-      panel.replaceChildren(h('div', { class: 'space-y-3' }, (data as any[]).length ? (data as any[]).map((s) => card(
-        h('div', { class: 'min-w-0 max-w-xl' },
-          h('p', { class: 'font-semibold break-words' }, s.title),
-          h('p', { class: 'text-xs text-ink/60' }, `${s.author_name} · ${fmt(s.created_at)} · ${s.status}`),
-          s.description && h('p', { class: 'mt-2 text-sm break-words' }, s.description),
-          s.image_url && h('a', { href: s.image_url, target: '_blank', rel: 'noopener noreferrer', class: 'mt-2 inline-block text-sm underline' }, 'View image')),
+      const badge = (st: string) => h('span', { class: `eyebrow px-2 py-0.5 ${st === 'pending' ? 'bg-accent text-ink' : st === 'approved' ? 'bg-ink text-white' : 'border border-line text-ink/60'}` },
+        st === 'pending' ? 'Waiting for review' : st === 'approved' ? 'Live' : 'Rejected');
+      panel.replaceChildren(
+        h('p', { class: 'text-sm text-ink/70 mb-4' }, pending ? `${pending} look${pending > 1 ? 's' : ''} waiting for review. Approved looks appear on the Community page.` : 'Nothing waiting for review. Approved looks appear on the Community page.'),
+        h('div', { class: 'space-y-3' }, data.length ? data.map((s) => card(
+        s.image_url && h('a', { href: s.image_url, target: '_blank', rel: 'noopener noreferrer', class: 'shrink-0' },
+          h('img', { src: s.image_url, alt: 'Look image', loading: 'lazy', class: 'w-24 h-30 md:w-32 md:h-40 object-cover border border-line' })),
+        h('div', { class: 'min-w-0 max-w-xl flex-1' },
+          badge(s.status),
+          h('p', { class: 'font-semibold break-words mt-2' }, s.title),
+          h('p', { class: 'text-xs text-ink/60' }, `${s.author_name} · ${fmt(s.created_at)}`),
+          s.description && h('p', { class: 'mt-2 text-sm break-words' }, s.description)),
         h('div', { class: 'flex flex-wrap gap-2' },
-          s.status !== 'approved' && btn('Approve', () => set(s.id, 'approved'), false),
+          s.status !== 'approved' && btn(s.status === 'rejected' ? 'Approve anyway' : 'Approve', () => set(s.id, 'approved'), false),
           s.status !== 'rejected' && btn('Reject', () => set(s.id, 'rejected')),
           btn('Delete', async () => {
             if (!confirm('Delete this submission?')) return;
             const { error } = await db.from('submissions').delete().eq('id', s.id);
-            error ? say(error.message, 'err') : submissions();
+            if (error) return say(error.message, 'err');
+            await removeImage(s.image_url);
+            submissions();
           })))) : empty('No submissions yet.')));
     }
 
@@ -177,6 +207,11 @@ import { u } from '../../lib/url';
           })))) : empty('No inquiries yet.')));
     }
 
+    function updateBadge(n: number) {
+      const b = document.querySelector('#tabs button[data-tab="submissions"]');
+      if (b) b.textContent = n ? `Community (${n})` : 'Community';
+    }
+
     function show(tab: string) {
       say('');
       document.querySelectorAll('#tabs button').forEach((b) => b.setAttribute('aria-selected', String((b as HTMLElement).dataset.tab === tab)));
@@ -200,7 +235,9 @@ import { u } from '../../lib/url';
       }, l)));
       $('signout').addEventListener('click', async () => { await db.auth.signOut(); location.replace(u('/login/')); });
       db.auth.onAuthStateChange((e) => { if (e === 'SIGNED_OUT') location.replace(u('/login/')); });
-      show('studies');
+      const { count } = await db.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+      updateBadge(count ?? 0);
+      show(count ? 'submissions' : 'studies');
     })();
   </script>
 </Base>

@@ -73,7 +73,8 @@ const en = {
     submitTitle: ['Submit', 'your look.'],
     gate: 'Sign in and create a profile to share your look. Submissions are reviewed before they appear.',
     gateBtn: 'Sign in to submit',
-    fTitle: 'Title', fDesc: 'Tell us about it', fImg: 'Image URL (https, optional)', fBtn: 'Submit look',
+    fTitle: 'Title', fDesc: 'Tell us about it', fImg: 'Image (optional)',
+    picker: { choose: 'Choose an image or drop it here', change: 'Choose a different image', hint: 'PNG, JPG or WEBP · up to 5 MB', remove: 'Remove image', badType: 'Please use a PNG, JPG or WEBP file.', tooBig: 'That file is over 5 MB.' }, fBtn: 'Submit look',
   },
   contact: {
     title: 'Contact', desc: 'Contact Mono for collaborations, press or to submit your style.',
@@ -118,7 +119,7 @@ const en = {
     formIncomplete: 'Please complete all fields with a valid email.', sending: 'Sending…',
     thanks: 'Thank you. We’ll be in touch soon.', mailFallback: 'Could not send. Opening your email app instead…',
     titleReq: 'Please add a title.', imgBad: 'Image URL must start with https://',
-    submitted: 'Thanks! Your look is awaiting review.', submitFail: 'Could not submit. Please try again.', by: 'by ',
+    submitted: 'Thanks! Your look is awaiting review.', submitFail: 'Could not submit. Please try again.', uploading: 'Uploading…', uploadFail: 'Could not upload the image. Please try again.', by: 'by ',
   },
 };
 
@@ -197,7 +198,8 @@ const ko: Dict = {
     submitTitle: ['내 룩을', '올려 주세요.'],
     gate: '로그인하고 프로필을 만들면 룩을 올릴 수 있어요. 올려 주신 룩은 확인 후 게시됩니다.',
     gateBtn: '로그인하고 올리기',
-    fTitle: '제목', fDesc: '룩 소개', fImg: '이미지 주소 (https, 선택)', fBtn: '룩 올리기',
+    fTitle: '제목', fDesc: '룩 소개', fImg: '이미지 (선택)',
+    picker: { choose: '이미지를 선택하거나 여기로 끌어다 놓으세요', change: '다른 이미지 선택', hint: 'PNG, JPG, WEBP · 최대 5MB', remove: '이미지 빼기', badType: 'PNG, JPG, WEBP 파일만 올릴 수 있어요.', tooBig: '파일이 5MB를 넘어요.' }, fBtn: '룩 올리기',
   },
   contact: {
     title: '문의', desc: '협업, 취재 문의나 내 스타일 제안은 Mono로 보내 주세요.',
@@ -242,7 +244,7 @@ const ko: Dict = {
     formIncomplete: '모든 칸을 올바르게 채워 주세요.', sending: '보내는 중…',
     thanks: '문의가 접수됐어요. 곧 답장드릴게요.', mailFallback: '전송에 실패했어요. 메일 앱으로 대신 보낼게요…',
     titleReq: '제목을 입력해 주세요.', imgBad: '이미지 주소는 https://로 시작해야 해요.',
-    submitted: '올려 주셔서 감사해요! 확인 후 게시됩니다.', submitFail: '올리지 못했어요. 잠시 후 다시 시도해 주세요.', by: 'by ',
+    submitted: '올려 주셔서 감사해요! 확인 후 게시됩니다.', submitFail: '올리지 못했어요. 잠시 후 다시 시도해 주세요.', uploading: '이미지 올리는 중…', uploadFail: '이미지를 올리지 못했어요. 다시 시도해 주세요.', by: 'by ',
   },
 };
 

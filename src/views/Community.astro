@@ -33,18 +33,19 @@ const looks = [['#0a0a0a', '#fff'], ['#e5ff3a', '#0a0a0a'], ['#2b2b2b', '#fff'],
         <form id="submit-form" hidden class="space-y-6 text-white" novalidate>
           <div><label for="s_title" class="eyebrow">{d.fTitle}</label><input id="s_title" maxlength="80" required class="field !text-white !border-white placeholder:!text-white/40" /></div>
           <div><label for="s_desc" class="eyebrow">{d.fDesc}</label><textarea id="s_desc" rows="3" maxlength="400" class="field !text-white !border-white"></textarea></div>
-          <div><label for="s_img" class="eyebrow">{d.fImg}</label><input id="s_img" type="url" inputmode="url" class="field !text-white !border-white" /></div>
-          <button class="eyebrow bg-accent text-ink px-8 py-4 w-full sm:w-auto hover:bg-white transition-colors" type="submit">{d.fBtn}</button>
+          <div><span class="eyebrow">{d.fImg}</span><div id="s_img_slot"></div></div>
+          <button id="s_btn" class="eyebrow bg-accent text-ink px-8 py-4 w-full sm:w-auto hover:bg-white transition-colors disabled:opacity-60" type="submit">{d.fBtn}</button>
           <p id="s_msg" role="status" class="text-sm"></p>
         </form>
       </div>
     </div>
   </section>
+  <script is:inline type="application/json" id="picker-text" set:html={JSON.stringify(d.picker)}></script>
   <script>
     import { hydrateLooks } from '../lib/content';
     import { supabase } from '../lib/supabase';
     import { getSession, getProfile } from '../lib/auth';
-    import { safeUrl } from '../lib/dom';
+    import { imagePicker, uploadImage, removeImage, type PickerText } from '../lib/upload';
     import { msg } from '../lib/i18n';
     hydrateLooks(document.getElementById('looks-grid'));
     (async () => {
@@ -56,17 +57,29 @@ const looks = [['#0a0a0a', '#fff'], ['#e5ff3a', '#0a0a0a'], ['#2b2b2b', '#fff'],
       const form = document.getElementById('submit-form') as HTMLFormElement;
       form.hidden = false;
       const out = document.getElementById('s_msg')!;
+      const picker = imagePicker('s_img', JSON.parse(document.getElementById('picker-text')!.textContent!) as PickerText);
+      document.getElementById('s_img_slot')!.replaceWith(picker.el);
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const m = msg();
         const title = (document.getElementById('s_title') as HTMLInputElement).value.trim();
         const description = (document.getElementById('s_desc') as HTMLTextAreaElement).value.trim();
-        const img = (document.getElementById('s_img') as HTMLInputElement).value.trim();
         if (!title) { out.textContent = m.titleReq; return; }
-        if (img && !safeUrl(img)) { out.textContent = m.imgBad; return; }
-        const { error } = await supabase!.from('submissions').insert({ title, description, image_url: img || null, author_name: p.display_name });
-        out.textContent = error ? m.submitFail : m.submitted;
-        if (!error) form.reset();
+        const btn = document.getElementById('s_btn') as HTMLButtonElement;
+        btn.disabled = true;
+        try {
+          let image_url: string | null = null;
+          const file = picker.file();
+          if (file) {
+            out.textContent = m.uploading;
+            try { image_url = await uploadImage(file, `looks/${s.user.id}`); }
+            catch { out.textContent = m.uploadFail; return; }
+          }
+          const { error } = await supabase!.from('submissions').insert({ title, description, image_url, author_name: p.display_name });
+          if (error) { await removeImage(image_url); out.textContent = m.submitFail; return; }
+          out.textContent = m.submitted;
+          form.reset(); picker.reset();
+        } finally { btn.disabled = false; }
       });
     })();
   </script>
